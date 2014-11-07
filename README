@@ -1,0 +1,4 @@
+PHP Imgur Album Downloader
+
+Supply a list of album ids in albums.txt
+run php imgurdownloader.php
