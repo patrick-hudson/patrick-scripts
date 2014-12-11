@@ -2,16 +2,11 @@
 error_reporting(E_ALL^E_STRICT);
 ini_set("display_errors", 1);
 
-if(file_exists("init.php")) require("init.php");
-elseif(file_exists("../init.php")) require ("../init.php");
-else echo "Init File not Found";
 session_start();
 $_SESSION["count"]++;
 $sessionpath = session_save_path().'/';
-//print_r($_SESSION);
 echo "<b>Session Checks</b>";
 echo "<pre>";
-echo 'This is your Session ID <pre>'.$_SESSION["tkval"].'</pre> Your session ID should NOT change when you refresh the page <br /> <br />';
 echo 'This is your session count <pre>'.$_SESSION["count"].'</pre>The number above should increment by ONE each time you refresh the page';
 echo '<br /> <br />Sessions are currently stored in '.$sessionpath;
 if (is_writable($sessionpath)){
