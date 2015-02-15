@@ -1,0 +1,25 @@
+#=====START SQL SCRIPT=====
+#The first four lines set the new default currency, the old currency, and both of their current currency IDs
+SET @NEWDEFAULT := "USD";
+SET @OLDDEFAULT := "EUR";
+SET @NEWDEFAULTID := 1;
+SET @OLDDEFAULTID := 2;
+#The next seven lines setup tblcurrencies to be edited. If the currency is default and the currency equals your old default, we then edit that item to 99. This is to ensure we don't have any primary key collisions. Once the default currency has been moved we grab the new currencies ID and check to see if it matches our new currency name. If it does, it sets the ID to default (1)
+UPDATE `tblcurrencies` 
+SET id = 
+	CASE
+    WHEN tblcurrencies.id = @NEWDEFAULTID AND tblcurrencies.code = @OLDDEFAULT THEN '99' 
+    WHEN tblcurrencies.id = @OLDDEFAULTID AND tblcurrencies.code = @NEWDEFAULT THEN @NEWDEFAULTID
+    ELSE `id`
+END;
+#the following line runs back through and changes the old default id from 99 to what is specificed in @OLDDEFAULTID
+UPDATE `tblcurrencies` SET id = @OLDDEFAULTID WHERE code = @OLDDEFAULT;
+#We setup tblclients to be updated. If the currency column in tblclients is equal to @NEWDEFAULTID (1) we need to reset that to @OLDDEFAULTID (2). This way your clients don't have their currencies changed. 
+UPDATE `tblclients` 
+SET currency = 
+	CASE
+    WHEN tblclients.currency = @NEWDEFAULTID THEN @OLDDEFAULTID
+    WHEN tblclients.currency = @OLDDEFAULTID THEN @NEWDEFAULTID
+    ELSE `currency`
+END;
+#=====END SQL SCRIPT=====
