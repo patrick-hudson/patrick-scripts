@@ -34,6 +34,10 @@ echo '<!DOCTYPE html>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 <script>
     $(document).ready(function(){
+    	var dteNow = new Date();
+    	var intYear = dteNow.getFullYear();
+    	var copyright = "Copyright &copy; " + intYear + " Patrick Hudson patrick.hudson@rackspace.com"
+    	$("#footer").append(copyright);
     	$("#allthethings").on("click", function(e) {
     		$("#sessiontest").trigger("click");
     		$("#ipcheck").trigger("click");
@@ -157,7 +161,8 @@ echo '<!DOCTYPE html>
 	</tbody>
     </table>
 </div>
-
+<div id ="footer">
+</div>
 </div>
 </body>
 </html>';
@@ -230,7 +235,4 @@ if(isset($_POST['phpinfo'])){
 
 	echo $infoarray;
 }
-$copyYear = 2008; // Set your website start date
-$curYear = date('Y'); // Keeps the second year updated
-echo $copyYear . (($copyYear != $curYear) ? '-' . $curYear : '');
 ?>
