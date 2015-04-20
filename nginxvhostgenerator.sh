@@ -38,14 +38,14 @@ green=$(tput setaf 2)
 normal=$(tput sgr0)
 
 #Added Padding
-if [ ! -f nginx_virtual_host.template ]; then
-	echo "${yellow}WARNING: ${normal}nginx_virtual_host.template not found, creating in current working directory\n\n"
-	(
+createtemplate()
+{
+(
 cat << EOF 
 server  {
     listen  80;
     root ROOT;
-    index  index.php;
+    index index.php index.html index.htm;
     server_name  www.DOMAIN DOMAIN;
     error_log  /var/log/nginx/DOMAIN-error.log warn;
     access_log  /var/log/nginx/DOMAIN.com-access.log combined;
@@ -66,7 +66,7 @@ server  {
 #server  {
 #    listen  443;
 #    root  ROOT;
-#    index  index.php;
+#    index index.php index.html index.htm;
 #    server_name  www.DOMAIN DOMAIN;
 #    error_log  /var/log/nginx/DOMAIN-ssl-error.log warn;
 #    access_log  /var/log/nginx/DOMAIN-ssl-access.log combined;
@@ -89,8 +89,9 @@ server  {
 #        ####PHP}
 #}
 EOF
-) > nginx_virtual_host.template 
-fi
+) > nginx_virtual_host.template
+}
+
 usage()
 {
 cat << EOF
@@ -210,8 +211,10 @@ interactivemysql()
 	read -r DBNAME
 	printf "Enter the Database Username you want to create : "
 	read -r DBUSER
+	DEFAULT="localhost"
 	printf "Enter the Host that will be connecting to $DBNAME [localhost] : "
 	read -r DBHOST
+	[ -z "$DBHOST" ] && DBHOST=$DEFAULT
 	read -s -p "Enter a Database User Password for $DBUSER : " DBPASS
 	echo
 	printf "Will this database be created on a remote MySQL Server? [Y/N] : "
@@ -270,7 +273,9 @@ $SED -i.bak 's/####PHP//' $CONFIG
 		$SED -i.bak "s#PORTSOCKET#$sock#g" $CONFIG
 	fi
 fi
-
+if [[ "$CREATEDB" =~ ^[Yy]$ ]]; then
+		interactivemysql
+fi
 rm $DOMAIN.conf.bak
 if [[ $ACTIVATEVHOST = "Y" ]]; then
 	reload_nginx
@@ -314,6 +319,13 @@ else
 	echo "VHOST Enabled: No, user declined prompt"
 	echo "VHOST Location: $CURPATH/$DOMAIN.conf"
 fi
+if [[ "$CREATEDB" =~ ^[Yy]$ ]]; then
+	echo "Database created"
+	echo "Database Name: $DBNAME"
+	echo "Database User: $DBUSER"
+	echo "Database Password: $DBPASS"
+	echo "Database Host: $DBHOST"
+fi
 echo "# --------------------------" >> $DOMAIN.conf.tmp
 echo "# Domain: $DOMAIN" >> $DOMAIN.conf.tmp
 echo "# Document Root $WEB_DIR" >> $DOMAIN.conf.tmp
@@ -334,6 +346,13 @@ if [ "$PHPFPM" = "Y" ]; then
 else
 	echo "# PHP-FPM Enabled: No" >> $DOMAIN.conf.tmp
 fi
+if [[ "$CREATEDB" =~ ^[Yy]$ ]]; then
+	echo "# Database created" >> $DOMAIN.conf.tmp
+	echo "# Database Name: $DBNAME" >> $DOMAIN.conf.tmp
+	echo "# Database User: $DBUSER" >> $DOMAIN.conf.tmp
+	echo "# Database Password: $DBPASS" >> $DOMAIN.conf.tmp
+	echo "# Database Host: $DBHOST" >> $DOMAIN.conf.tmp
+fi
 echo "# --------------------------" >> $DOMAIN.conf.tmp
 cat $DOMAIN.conf >> $DOMAIN.conf.tmp
 if [[ "$ACTIVATEVHOST" =~ ^[Yy]$ ]]; then
@@ -341,6 +360,7 @@ if [[ "$ACTIVATEVHOST" =~ ^[Yy]$ ]]; then
 else
 	mv $DOMAIN.conf.tmp $DOMAIN.conf
 fi
+rm nginx_virtual_host.template
 exit 0;
 }
 useopts()
@@ -490,14 +510,13 @@ interactive()
 		read -r $ENABLEDPATH
 		[ -z "$ENABLEDPATH" ] && ENABLEDPATH=$DEFAULT
 	fi
-	editconfig
 	DEFAULT="Y"
 	printf "Create MySQL Database for site? [Y/N] : "
 	read -r CREATEDB
 	[ -z "$CREATEDB" ] && CREATEDB=$DEFAULT
-	if [[ "$CREATEDB" =~ ^[Yy]$ ]]; then
-		interactivemysql
-	fi
+	editconfig
+
+
 }
  # Variables to be evaluated as shell arithmetic should be initialized to a default or validated beforehand.
 
@@ -684,6 +703,10 @@ done
 SED=`which sed`
 CURRENT_DIR=`dirname $0`
 if [ "$OPTS" = "1" ]; then
+	if [ ! -f nginx_virtual_host.template ]; then
+		echo "${yellow}WARNING: ${normal}nginx_virtual_host.template not found, creating in current working directory\n\n"
+		createtemplate
+	fi
 	useopts
 else
 	parameter=$(echo $1 | awk '{print tolower($0)}')
@@ -694,8 +717,12 @@ else
 	elif [[ $parameter = "mysql" ]]; then
 		interactivemysql
 	else
+		if [ ! -f nginx_virtual_host.template ]; then
+			echo "${yellow}WARNING: ${normal}nginx_virtual_host.template not found, creating in current working directory\n\n"
+			createtemplate
+		fi
 		interactive $parameter
+
 	fi
 	
 fi
-
