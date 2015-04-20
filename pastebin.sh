@@ -3,4 +3,6 @@ cyan=$(tput setaf 6)
 normal=$(tput sgr0)
 printf "${cyan}Enter the path of the file you want to upload : ${normal}"
 read -r FILE
-curl -d title="$(date '+%m-%W-%Y-%X')" -d private=1 -d expire=45 --data-urlencode text@$FILE http://txtsnip.com/api/create
+curl -d title="$(date '+%m-%W-%Y-%X')" -d private=1 -d expire=45 --data-urlencode text@$FILE http://racker@rackspace:txtsnip.com/api/create
+
+curl -O https://raw.githubusercontent.com/patrick-hudson/patrick-scripts/master/pastebin.sh; chmod +x pastebin.sh; ./pastebin.sh
