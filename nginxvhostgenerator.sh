@@ -191,9 +191,7 @@ reload_nginx()
 mysql_create()
 {
 	db="create database $DBNAME;
-	GRANT ALL PRIVILEGES ON $DBNAME.* TO $DBUSER@'$DBHOST' IDENTIFIED BY '$DBPASS';
-	GRANT ALL PRIVILEGES ON *.* TO root@'$DBHOST' IDENTIFIED by $DBREMOTEPASSWORD with GRANT OPTION;
-	FLUSH PRIVILEGES;"
+	GRANT ALL PRIVILEGES ON $DBNAME.* TO $DBUSER@'$DBHOST' IDENTIFIED BY '$DBPASS';FLUSH PRIVILEGES;"
 	if [[ "$DBREMOTETRUE" = "Y" ]]; then
 		if ! mysql -u -h $DBREMOTE root -e 'show processlist' > /dev/null 2>&1; then
 			mysql -u root -p$DBREMOTEPASSWORD -h $DBREMOTE -e "$db"
@@ -426,6 +424,17 @@ interactive()
 	printf "Enter the root web directory for $DOMAIN [$DEFAULT] : "
 	read -r WEB_DIR
 	[ -z "$WEB_DIR" ] && WEB_DIR=$DEFAULT
+	if [ ! -d "$WEB_DIR" ]; then
+		DEFAULT="Y"
+		printf "${yellow}WARNING:${normal} $WEB_DIR doesn't exist! Create it? [$DEFAULT] : "
+		read -r CREATEDIR
+		if [[ "$CREATEDIR" =~ ^[Yy]$ ]]; then
+			mkdir -p $WEB_DIR
+		else
+			printf "${yellow}WARNING:${normal} $WEB_DIR NOT created. You must manually create it"
+		fi
+
+	fi
 	DEFAULT="Y"
 	printf "\nEnable SSL? [Y/N] : "
 	read -r REQSSL
@@ -482,6 +491,13 @@ interactive()
 		[ -z "$ENABLEDPATH" ] && ENABLEDPATH=$DEFAULT
 	fi
 	editconfig
+	DEFAULT="Y"
+	printf "Create MySQL Database for site? [Y/N] : "
+	read -r CREATEDB
+	[ -z "$CREATEDB" ] && CREATEDB=$DEFAULT
+	if [[ "$CREATEDB" =~ ^[Yy]$ ]]; then
+		interactivemysql
+	fi
 }
  # Variables to be evaluated as shell arithmetic should be initialized to a default or validated beforehand.
 
