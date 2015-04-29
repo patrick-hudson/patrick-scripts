@@ -29,6 +29,7 @@ RELOADERROR=
 verbose=0
 NGINX=`which nginx`
 CURPATH=$(pwd)
+SED=`which sed`
 #Colors
 yellow=$(tput setaf 3)
 cyan=$(tput setaf 6)
@@ -99,25 +100,12 @@ usage: $0 options
 
 This script creates a vhost for nginx. You can either pass it options, or simply provide a domain and interactively enter the info
 
-Interactive Example: ./nginxvhostgenerator.sh mydomain.com
-	./nginxvhostgenerator.sh mydomain.com
-	> Enter the root web directory for mydomain.com
-		mydomain.com
-	> Enable SSL? [Y/N]
-		Y
-	> Enter the CA Bundle Path (Example: /etc/ssl/certs/year-sitename.ca.crt)
-		/etc/ssl/certs/year-sitename.ca.crt
-	> Enter the Cert Path (Example: /etc/ssl/certs/year-sitename.crt)
-		/etc/ssl/certs/year-sitename.crt
-	> Enter the Private Key Path (Example: /etc/ssl/private/year-sitename.key)
-		/etc/ssl/private/year-sitename.key
-	Creating hosting for: mydomain.com
+Interactive Example: 
+	${green}./nginxvhostgenerator.sh mydomain.com${normal}
 
-	Site Created for mydomain.com
-
-
-Options Example: ./nginxvhostgenerator.sh --use-opts --domain mydomain.com --root-path /var/www/vhosts/domain.com --ssl --ca-path /etc/ssl/certs/year-sitename.ca.crt --cert-path /etc/ssl/certs/year-sitename.crt --key-path /etc/ssl/private/year-sitename.key --php-fpm --php-fpm-port 9000
-OPTIONS:
+VHOST Options Example:
+ 	${green}./nginxvhostgenerator.sh --use-opts --domain mydomain.com --root-path /var/www/vhosts/domain.com --ssl --ca-path /etc/ssl/certs/year-sitename.ca.crt --cert-path /etc/ssl/certs/year-sitename.crt --key-path /etc/ssl/private/year-sitename.key --php-fpm --php-fpm-port 9000
+${normal}OPTIONS:
 	--use-opts 
 		This option is required if you want to utilize the non-interactive vhost generator
 	--domain
@@ -139,7 +127,26 @@ OPTIONS:
 	--php-fpm-port
 		Pass this option with a port number to utilize a port based connection to PHP-FPM
 
+MySQL LocalHost Database Options Example:
+	${green}./nginxvhostgenerator.sh --use-opts --mysql-dbname sitedb --mysql-username siteuser --mysql-user-password mysecretpass --mysql-userhost localhost
+${normal}
+${yellow}To utlize database generation you MUST have a .my.cnf file located in /root/${normal}
 
+OPTIONS:
+	--use-opts 
+		This option is required if you want to utilize the non-interactive generator
+	--mysql-dbname
+		New Database Name
+	--mysql-username
+		New Database User
+	--mysql-user-password
+		Password for new user
+	--mysql-userhost localhost
+		Should ${cyan}ALWAYS${normal} be LocalHost
+
+${red}NOT FULLY IMPLEMENTED, USE AT OWN RISK ${normal}
+MySQL Remote Host Database Options Example
+./nginxvhostgenerator.sh --use-opts --mysql-dbname sitedb --mysql-username siteuser --mysql-user-password mysecretpass --mysql-remoteip 10.200.1.1 --mysql-remote-password mysecretrootpass
 EOF
 }
 reload_nginx()
@@ -202,7 +209,13 @@ mysql_create()
 	else
 		mysql -u root -e "$db"
 	fi
-			
+	if [[ "$OPTS" = "1" ]]; then
+		echo "Database created"
+		echo "Database Name: $DBNAME"
+		echo "Database User: $DBUSER"
+		echo "Database Password: $DBPASS"
+		echo "Database Host: $DBHOST"
+	fi
 	
 }
 interactivemysql()
@@ -239,129 +252,130 @@ interactivemysql()
 	mysql_create
 
 }
+
 editconfig()
 {
-# check the domain is valid!
-PATTERN="^(([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z]|[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9])$";
-if [[ "$DOMAIN" =~ $PATTERN ]]; then
-	DOMAIN=`echo $DOMAIN | tr '[A-Z]' '[a-z]'`
-else
-	echo "${red}${red}ERROR:${normal} ${normal}invalid domain name"
-	exit 1
-fi
- 
-# Now we need to copy the virtual host template
-CONFIG=$DOMAIN.conf
-cp nginx_virtual_host.template $CONFIG
+	# check the domain is valid!
+	PATTERN="^(([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z]|[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9])$";
+	if [[ "$DOMAIN" =~ $PATTERN ]]; then
+		DOMAIN=`echo $DOMAIN | tr '[A-Z]' '[a-z]'`
+	else
+		echo "${red}${red}ERROR:${normal} ${normal}invalid domain name"
+		exit 1
+	fi
+	 
+	# Now we need to copy the virtual host template
+	CONFIG=$DOMAIN.conf
+	cp nginx_virtual_host.template $CONFIG
 
-$SED -i.bak "s#DOMAIN#$DOMAIN#g" $CONFIG
-$SED -i.bak "s!ROOT!$WEB_DIR!g" $CONFIG
-if [ "$REQSSL" = "Y" ]; then
-	$SED -i.bak 's/^#*//' $CONFIG
-	$SED -i.bak "s#CAPATH#$BUNDLE#g" $CONFIG
-	$SED -i.bak "s#CERTPATH#$CERT#g" $CONFIG
-	$SED -i.bak "s#KEYPATH#$KEY#g" $CONFIG
-fi
-if [ "$PHPFPM" = "Y" ]; then
-$SED -i.bak 's/####PHP//' $CONFIG
-	if [ "$CONTYPE" = "PORT" ]; then
-		ipport="127.0.0.1:$CONPORT"
-		$SED -i.bak "s#PORTSOCKET#$ipport#g" $CONFIG
+	$SED -i.bak "s#DOMAIN#$DOMAIN#g" $CONFIG
+	$SED -i.bak "s!ROOT!$WEB_DIR!g" $CONFIG
+	if [ "$REQSSL" = "Y" ]; then
+		$SED -i.bak 's/^#*//' $CONFIG
+		$SED -i.bak "s#CAPATH#$BUNDLE#g" $CONFIG
+		$SED -i.bak "s#CERTPATH#$CERT#g" $CONFIG
+		$SED -i.bak "s#KEYPATH#$KEY#g" $CONFIG
 	fi
-	if [ "$CONTYPE" = "SOCKET" ]; then
-		sock="unix:/var/run/php5-fpm.sock"
-		$SED -i.bak "s#PORTSOCKET#$sock#g" $CONFIG
+	if [ "$PHPFPM" = "Y" ]; then
+	$SED -i.bak 's/####PHP//' $CONFIG
+		if [ "$CONTYPE" = "PORT" ]; then
+			ipport="127.0.0.1:$CONPORT"
+			$SED -i.bak "s#PORTSOCKET#$ipport#g" $CONFIG
+		fi
+		if [ "$CONTYPE" = "SOCKET" ]; then
+			sock="unix:/var/run/php5-fpm.sock"
+			$SED -i.bak "s#PORTSOCKET#$sock#g" $CONFIG
+		fi
 	fi
-fi
-if [[ "$CREATEDB" =~ ^[Yy]$ ]]; then
-		interactivemysql
-fi
-rm $DOMAIN.conf.bak
-if [[ $ACTIVATEVHOST = "Y" ]]; then
-	reload_nginx
-else
-	printresults
-fi
+	if [[ "$CREATEDB" =~ ^[Yy]$ ]]; then
+			interactivemysql
+	fi
+	rm $DOMAIN.conf.bak
+	if [[ $ACTIVATEVHOST = "Y" ]]; then
+		reload_nginx
+	else
+		printresults
+	fi
 
 }
 printresults() 
 {
 
-echo -e "\nCreating hosting for:" $DOMAIN
-echo -e "\nSite Created for $DOMAIN"
-echo "--------------------------"
-echo "Domain: $DOMAIN"
-echo "Document Root $WEB_DIR"
-if [ "$REQSSL" = "Y" ]; then
-	echo "SSL Enabled: Yes"
-	echo "Certificate Bundle Path: $BUNDLE"
-	echo "Certificate Path: $CERT"
-	echo "Private Key Path: $KEY"
-else
-	echo "SSL Enabled: No"
-fi
-if [ "$PHPFPM" = "Y" ]; then
-	echo "PHP-FPM Enabled: Yes"
-	echo "PHP-FPM Connection Type: $CONTYPE"
-	if [ "$CONTYPE" = "PORT" ]; then
-		echo "PHP-FPM Port Number: $CONPORT"
+	echo -e "\nCreating hosting for:" $DOMAIN
+	echo -e "\nSite Created for $DOMAIN"
+	echo "--------------------------"
+	echo "Domain: $DOMAIN"
+	echo "Document Root $WEB_DIR"
+	if [ "$REQSSL" = "Y" ]; then
+		echo "SSL Enabled: Yes"
+		echo "Certificate Bundle Path: $BUNDLE"
+		echo "Certificate Path: $CERT"
+		echo "Private Key Path: $KEY"
+	else
+		echo "SSL Enabled: No"
 	fi
-else
-	echo "PHP-FPM Enabled: No"
-fi
-if [[ "$ACTIVATEVHOST" =~ ^[Yy]$ ]] && [[ "$RELOADERROR" = "N" ]]; then
-	echo "VHOST Enabled: Yes"
-	echo "VHOST Location: $VHOSTPATH/$DOMAIN.conf"
-elif [[ "$RELOADERROR" = "Y" ]]; then
-	echo "VHOST Enabled: ${red}ERROR${normal}"
-	echo "VHOST Location: $CURPATH/$DOMAIN.conf"
-else
-	echo "VHOST Enabled: No, user declined prompt"
-	echo "VHOST Location: $CURPATH/$DOMAIN.conf"
-fi
-if [[ "$CREATEDB" =~ ^[Yy]$ ]]; then
-	echo "Database created"
-	echo "Database Name: $DBNAME"
-	echo "Database User: $DBUSER"
-	echo "Database Password: $DBPASS"
-	echo "Database Host: $DBHOST"
-fi
-echo "# --------------------------" >> $DOMAIN.conf.tmp
-echo "# Domain: $DOMAIN" >> $DOMAIN.conf.tmp
-echo "# Document Root $WEB_DIR" >> $DOMAIN.conf.tmp
-if [ "$REQSSL" = "Y" ]; then
-	echo "# SSL Enabled: Yes" >> $DOMAIN.conf.tmp
-	echo "# Certificate Bundle Path: $BUNDLE" >> $DOMAIN.conf.tmp
-	echo "# Certificate Path: $CERT" >> $DOMAIN.conf.tmp
-	echo "# Private Key Path: $KEY" >> $DOMAIN.conf.tmp
-else
-	echo "# SSL Enabled: No" >> $DOMAIN.conf.tmp
-fi
-if [ "$PHPFPM" = "Y" ]; then
-	echo "# PHP-FPM Enabled: Yes" >> $DOMAIN.conf.tmp
-	echo "# PHP-FPM Connection Type: $CONTYPE" >> $DOMAIN.conf.tmp
-	if [ "$CONTYPE" = "PORT" ]; then
-		echo "# PHP-FPM Port Number: $CONPORT" >> $DOMAIN.conf.tmp
+	if [ "$PHPFPM" = "Y" ]; then
+		echo "PHP-FPM Enabled: Yes"
+		echo "PHP-FPM Connection Type: $CONTYPE"
+		if [ "$CONTYPE" = "PORT" ]; then
+			echo "PHP-FPM Port Number: $CONPORT"
+		fi
+	else
+		echo "PHP-FPM Enabled: No"
 	fi
-else
-	echo "# PHP-FPM Enabled: No" >> $DOMAIN.conf.tmp
-fi
-if [[ "$CREATEDB" =~ ^[Yy]$ ]]; then
-	echo "# Database created" >> $DOMAIN.conf.tmp
-	echo "# Database Name: $DBNAME" >> $DOMAIN.conf.tmp
-	echo "# Database User: $DBUSER" >> $DOMAIN.conf.tmp
-	echo "# Database Password: $DBPASS" >> $DOMAIN.conf.tmp
-	echo "# Database Host: $DBHOST" >> $DOMAIN.conf.tmp
-fi
-echo "# --------------------------" >> $DOMAIN.conf.tmp
-cat $DOMAIN.conf >> $DOMAIN.conf.tmp
-if [[ "$ACTIVATEVHOST" =~ ^[Yy]$ ]]; then
-	mv $DOMAIN.conf.tmp $VHOSTPATH/$DOMAIN.conf
-else
-	mv $DOMAIN.conf.tmp $DOMAIN.conf
-fi
-rm nginx_virtual_host.template
-exit 0;
+	if [[ "$ACTIVATEVHOST" =~ ^[Yy]$ ]] && [[ "$RELOADERROR" = "N" ]]; then
+		echo "VHOST Enabled: Yes"
+		echo "VHOST Location: $VHOSTPATH/$DOMAIN.conf"
+	elif [[ "$RELOADERROR" = "Y" ]]; then
+		echo "VHOST Enabled: ${red}ERROR${normal}"
+		echo "VHOST Location: $CURPATH/$DOMAIN.conf"
+	else
+		echo "VHOST Enabled: No, user declined prompt"
+		echo "VHOST Location: $CURPATH/$DOMAIN.conf"
+	fi
+	if [[ "$CREATEDB" =~ ^[Yy]$ ]]; then
+		echo "Database created"
+		echo "Database Name: $DBNAME"
+		echo "Database User: $DBUSER"
+		echo "Database Password: $DBPASS"
+		echo "Database Host: $DBHOST"
+	fi
+	echo "# --------------------------" >> $DOMAIN.conf.tmp
+	echo "# Domain: $DOMAIN" >> $DOMAIN.conf.tmp
+	echo "# Document Root $WEB_DIR" >> $DOMAIN.conf.tmp
+	if [ "$REQSSL" = "Y" ]; then
+		echo "# SSL Enabled: Yes" >> $DOMAIN.conf.tmp
+		echo "# Certificate Bundle Path: $BUNDLE" >> $DOMAIN.conf.tmp
+		echo "# Certificate Path: $CERT" >> $DOMAIN.conf.tmp
+		echo "# Private Key Path: $KEY" >> $DOMAIN.conf.tmp
+	else
+		echo "# SSL Enabled: No" >> $DOMAIN.conf.tmp
+	fi
+	if [ "$PHPFPM" = "Y" ]; then
+		echo "# PHP-FPM Enabled: Yes" >> $DOMAIN.conf.tmp
+		echo "# PHP-FPM Connection Type: $CONTYPE" >> $DOMAIN.conf.tmp
+		if [ "$CONTYPE" = "PORT" ]; then
+			echo "# PHP-FPM Port Number: $CONPORT" >> $DOMAIN.conf.tmp
+		fi
+	else
+		echo "# PHP-FPM Enabled: No" >> $DOMAIN.conf.tmp
+	fi
+	if [[ "$CREATEDB" =~ ^[Yy]$ ]]; then
+		echo "# Database created" >> $DOMAIN.conf.tmp
+		echo "# Database Name: $DBNAME" >> $DOMAIN.conf.tmp
+		echo "# Database User: $DBUSER" >> $DOMAIN.conf.tmp
+		echo "# Database Password: $DBPASS" >> $DOMAIN.conf.tmp
+		echo "# Database Host: $DBHOST" >> $DOMAIN.conf.tmp
+	fi
+	echo "# --------------------------" >> $DOMAIN.conf.tmp
+	cat $DOMAIN.conf >> $DOMAIN.conf.tmp
+	if [[ "$ACTIVATEVHOST" =~ ^[Yy]$ ]]; then
+		mv $DOMAIN.conf.tmp $VHOSTPATH/$DOMAIN.conf
+	else
+		mv $DOMAIN.conf.tmp $DOMAIN.conf
+	fi
+	rm nginx_virtual_host.template
+	exit 0;
 }
 useopts()
 {
@@ -700,8 +714,7 @@ done
 # Suppose --file is a required option. Ensure the variable "file" has been set and exit if not.
 
 
-SED=`which sed`
-CURRENT_DIR=`dirname $0`
+
 if [ "$OPTS" = "1" ]; then
 	if [ ! -f nginx_virtual_host.template ]; then
 		echo "${yellow}WARNING: ${normal}nginx_virtual_host.template not found, creating in current working directory\n\n"
@@ -712,7 +725,7 @@ else
 	parameter=$(echo $1 | awk '{print tolower($0)}')
 	if [ -z $parameter ]; then
 		echo "${red}ERROR:${normal} No parameter given"
-		echo "${cyan}INFO: Use ./nginxvhostgenerator.sh --help"
+		usage
 		exit 1
 	elif [[ $parameter = "mysql" ]]; then
 		interactivemysql
