@@ -110,7 +110,7 @@ printInfo()
 	printf "     X11Forwarding no\n"
 	printf "     AllowTCPForwarding no\n"
 	printf "     ForceCommand internal-sftp\n${normal}"
-	printf "Restart SSH"
+	printf "Restart SSH\n\n"
 
 
 }
