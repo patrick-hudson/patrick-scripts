@@ -1,4 +1,25 @@
 #!/bin/bash
+# 	Copyright (c) 2014 Patrick Hudson
+# 	Author: Patrick Hudson
+# 	Email: patrick.hudson@rackspace.com
+# 	
+# 		Permission is hereby granted, free of charge, to any person obtaining a copy
+# 		of this software and associated documentation files (the "Software"), to deal
+# 		in the Software without restriction, including without limitation the rights
+# 		to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# 		copies of the Software, and to permit persons to whom the Software is
+# 		furnished to do so, subject to the following conditions:
+# 	
+# 		The above copyright notice and this permission notice shall be included in all
+# 		copies or substantial portions of the Software.
+# 		
+# 		THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# 		IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# 		FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# 		AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# 		LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# 		OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# 		SOFTWARE.
 yellow=$(tput setaf 3)
 cyan=$(tput setaf 6)
 blue=$(tput setaf 4)
@@ -79,6 +100,18 @@ printInfo()
 	printf "${green}Run the following to update the permissions for $bindLoc to 0775 (read/write for user and group + sticky)\n${normal}"
 	printf "${cyan}chmod -R 0775 $bindLoc\n\n${normal}"
 	printf "${green}Insert the following into /etc/fstab and then run mount -a\n${normal}"
-	printf "${cyan}$bindLoc              /home/$username/$sitename                 none    bind    0 0\n${normal}"
+	printf "${cyan}$bindLoc              /home/$username/$sitename                 none    bind    0 0\n\n${normal}"
+	printf "Change the following into /etc/ssh/sshd_config\n"
+	printf "Comment Out ${green}Subsystem sftp /usr/lib/openssh/sftp-server \n${normal}"
+	printf "Insert ${green}Subsystem sftp internal-sftp${normal}\n\n"
+	printf "Insert the following into /etc/ssh/sshd_config at the VERY BOTTOM!\n"
+	printf "${green}Match Group sftponly\n"
+	echo -e "     ChrootDirectory /var/www/vhosts/%h"
+	printf "     X11Forwarding no\n"
+	printf "     AllowTCPForwarding no\n"
+	printf "     ForceCommand internal-sftp\n${normal}"
+	printf "Restart SSH"
+
+
 }
 addGroup
