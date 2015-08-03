@@ -75,7 +75,8 @@ createHome()
 	    printf "${green}Home Directory /home/$1 created! ${normal}\n"
 	    bindMountHome $username
 	else
-	    echo "${red}Home failed to create (Probably exists){normal}"
+	    echo "${red}Home failed to create (Probably exists)${normal}"
+	    bindMountHome $username
 	fi
 }
 bindMountHome()
