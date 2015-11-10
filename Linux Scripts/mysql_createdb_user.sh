@@ -17,7 +17,7 @@ fi
 RANDOM_PASS=$(python -c "import string; import random; chars = string.letters + string.digits + string.punctuation; pwdSize = 16; print ''.join((random.choice(chars)) for x in range(pwdSize))")
 RANDOM_PASS=$(echo $RANDOM_PASS | sed "s/'//g")
 Q1="CREATE DATABASE IF NOT EXISTS $1;"
-Q2="GRANT ALL ON *.* TO '$UNAME'@'$2' IDENTIFIED BY '$RANDOM_PASS';"
+Q2="GRANT ALL ON $1.* TO '$UNAME'@'$2' IDENTIFIED BY '$RANDOM_PASS';"
 Q3="FLUSH PRIVILEGES;"
 SQL="${Q1}${Q2}${Q3}"
 printf '%s\n' "MySQL Database and User Created"
